@@ -33,7 +33,7 @@ logger = logging.getLogger("guard.transparency.rekor")
 
 # Rekor API endpoint
 REKOR_API_URL = "https://rekor.sigstore.dev"
-GUARD_TRANSPARENCY_URL = "https://transparency.faramesh.ai"  # Our own log
+GUARD_TRANSPARENCY_URL = "https://transparency.faramesh.dev"  # Our own log
 
 
 class EntryType(Enum):

@@ -62,8 +62,8 @@ export GUARD_ENROLL_URL="https://guard-enroll.<your-subdomain>.workers.dev"
 export GUARD_SUPPORT_URL="https://guard-support.<your-subdomain>.workers.dev"
 
 # TUF repository (GitHub Releases or self-hosted)
-export GUARD_TUF_METADATA_URL="https://updates.faramesh.ai/guard/v1"
-export GUARD_ARTIFACT_BASE_URL="https://github.com/faramesh-ai/guard/releases/download"
+export GUARD_TUF_METADATA_URL="https://updates.faramesh.dev/guard/v1"
+export GUARD_ARTIFACT_BASE_URL="https://github.com/faramesh/faramesh-guard/releases/download"
 
 # Authentication
 export GUARD_AUTH_TOKEN="<your-secret-auth-token>"

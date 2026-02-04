@@ -32,7 +32,7 @@ We plan to sign releases with GPG. When available:
 gpg --keyserver keyserver.ubuntu.com --recv-keys XXXXXXXX
 
 # Or from file
-curl -sSL https://faramesh.ai/gpg-key.asc | gpg --import
+curl -sSL https://faramesh.dev/gpg-key.asc | gpg --import
 ```
 
 ### Verify Signature
@@ -83,7 +83,7 @@ rpm --addsign guard.rpm
 
 ## Reporting Vulnerabilities
 
-Email: security@faramesh.ai
+Email: security@faramesh.dev
 
 Do NOT open public issues for security vulnerabilities.
 

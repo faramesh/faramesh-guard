@@ -30,7 +30,7 @@ import urllib.error
 logger = logging.getLogger("guard.updates.tuf")
 
 # Update server configuration
-TUF_REPOSITORY_URL = "https://updates.faramesh.ai/guard/v1"
+TUF_REPOSITORY_URL = "https://updates.faramesh.dev/guard/v1"
 TUF_LOCAL_CACHE = Path.home() / ".faramesh-guard" / "tuf_cache"
 
 

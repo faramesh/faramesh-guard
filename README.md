@@ -205,7 +205,7 @@ sha256sum -c checksums.txt
 ---
 
 <p align="center">
-  <a href="https://faramesh.ai">Website</a> •
+  <a href="https://faramesh.dev">Website</a> •
   <a href="https://github.com/faramesh/faramesh-guard/issues">Issues</a> •
   <a href="https://discord.gg/faramesh">Discord</a>
 </p>

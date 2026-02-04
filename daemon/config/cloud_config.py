@@ -33,12 +33,12 @@ logger = logging.getLogger("guard.config")
 ARTIFACT_BASE_URL = os.getenv(
     "GUARD_ARTIFACT_BASE_URL",
     "https://github.com/faramesh/guard/releases/download"  # GitHub Releases
-    # OR: "https://artifacts.faramesh.ai/guard"  # R2 bucket with custom domain
+    # OR: "https://artifacts.faramesh.dev/guard"  # R2 bucket with custom domain
 )
 
 TUF_METADATA_URL = os.getenv(
     "GUARD_TUF_METADATA_URL",
-    "https://updates.faramesh.ai/guard/v1"  # TUF repository
+    "https://updates.faramesh.dev/guard/v1"  # TUF repository
 )
 
 # Data Plane (Push - Cloudflare Workers)
