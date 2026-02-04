@@ -3,11 +3,10 @@ main = "src/index.js"
 compatibility_date = "2024-01-01"
 workers_dev = true
 
-# Custom domain - requires zone to be active in Cloudflare
-# Uncomment after zone is added:
-# routes = [
-#   { pattern = "updates.faramesh.dev/*", zone_name = "faramesh.dev" }
-# ]
+# Custom domain
+routes = [
+  { pattern = "updates.faramesh.dev", custom_domain = true }
+]
 
 # R2 bucket for TUF artifacts
 [[r2_buckets]]
