@@ -1,0 +1,23 @@
+name = "guard-transparency"
+main = "src/index.js"
+compatibility_date = "2024-01-01"
+compatibility_flags = ["nodejs_compat"]
+
+# Custom domain - uncomment after DNS is configured
+# routes = [
+#   { pattern = "transparency.faramesh.dev", custom_domain = true }
+# ]
+
+# D1 database for Merkle tree storage
+[[d1_databases]]
+binding = "MERKLE_DB"
+database_name = "guard-transparency"
+database_id = "a51ab374-b8d6-41b3-8496-6ebabea92f73"
+
+# R2 for large artifacts (proofs, audit bundles)
+[[r2_buckets]]
+binding = "PROOF_BUCKET"
+bucket_name = "guard-proofs"
+
+[vars]
+ENVIRONMENT = "production"

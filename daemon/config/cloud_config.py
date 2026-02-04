@@ -32,13 +32,18 @@ logger = logging.getLogger("guard.config")
 # Control Plane (Pull - TUF signed files)
 ARTIFACT_BASE_URL = os.getenv(
     "GUARD_ARTIFACT_BASE_URL",
-    "https://github.com/faramesh/guard/releases/download"  # GitHub Releases
+    "https://github.com/faramesh/faramesh-guard/releases/download"  # GitHub Releases
     # OR: "https://artifacts.faramesh.dev/guard"  # R2 bucket with custom domain
 )
 
 TUF_METADATA_URL = os.getenv(
     "GUARD_TUF_METADATA_URL",
-    "https://updates.faramesh.dev/guard/v1"  # TUF repository
+    "https://guard-updates.faramesh.workers.dev/v1"  # TUF repository (or updates.faramesh.dev after DNS)
+)
+
+TRANSPARENCY_URL = os.getenv(
+    "GUARD_TRANSPARENCY_URL",
+    "https://guard-transparency.faramesh.workers.dev"  # Public Merkle log (or transparency.faramesh.dev)
 )
 
 # Data Plane (Push - Cloudflare Workers)

@@ -1,0 +1,21 @@
+name = "guard-updates"
+main = "src/index.js"
+compatibility_date = "2024-01-01"
+
+# Custom domain - uncomment after DNS is configured
+# routes = [
+#   { pattern = "updates.faramesh.dev", custom_domain = true }
+# ]
+
+# R2 bucket for TUF artifacts
+[[r2_buckets]]
+binding = "TUF_BUCKET"
+bucket_name = "guard-tuf"
+
+# KV for caching metadata
+[[kv_namespaces]]
+binding = "TUF_CACHE"
+id = "29e300d94b2b4d498fb6af8b58d81510"
+
+[vars]
+ENVIRONMENT = "production"
