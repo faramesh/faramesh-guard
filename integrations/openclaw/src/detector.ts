@@ -2,20 +2,25 @@
  * OpenClaw Installation Detector
  *
  * Finds where OpenClaw is installed on the user's machine:
- * 1. Global npm installation
- * 2. Local node_modules (repo clone)
- * 3. Packaged app (.app bundle, AppImage, etc.)
+ * 1. Global npm installation (npm install -g openclaw)
+ * 2. Local node_modules (repo clone or npm install)
+ * 3. Packaged app (.app bundle, AppImage, .exe)
+ * 4. Homebrew (macOS)
+ * 5. System package managers (apt, dnf, pacman)
+ * 6. Windows installers (chocolatey, scoop, winget)
  *
  * STRATEGY: Prefer patching BUILT files (no rebuild needed!)
+ *
+ * CROSS-PLATFORM: Works on macOS, Windows, and Linux
  */
 
-import { existsSync, readFileSync, readdirSync } from 'fs';
-import { join, dirname } from 'path';
+import { existsSync, readFileSync, readdirSync, statSync } from 'fs';
+import { join, dirname, basename } from 'path';
 import { execSync } from 'child_process';
-import { homedir } from 'os';
+import { homedir, platform } from 'os';
 
 export interface OpenClawInstallation {
-  type: 'npm-global' | 'npm-local' | 'repo-clone' | 'packaged' | 'unknown';
+  type: 'npm-global' | 'npm-local' | 'repo-clone' | 'packaged' | 'homebrew' | 'system-package' | 'unknown';
   rootPath: string;
   version: string;
   sourceFiles: {
@@ -34,6 +39,74 @@ export interface OpenClawInstallation {
   targetFile: string;
   /** If true, user must rebuild after patching (only for source patches) */
   needsRebuild: boolean;
+  /** Operating system */
+  platform: 'darwin' | 'win32' | 'linux';
+  /** All detected installations (for UI display) */
+  allInstallations?: OpenClawInstallation[];
+}
+
+const CURRENT_PLATFORM = platform() as 'darwin' | 'win32' | 'linux';
+
+/**
+ * Get common OpenClaw installation paths by platform
+ */
+function getCommonPaths(): string[] {
+  const home = homedir();
+  const paths: string[] = [];
+
+  // Common dev locations
+  paths.push(
+    join(home, 'openclaw'),
+    join(home, 'OpenClaw'),
+    join(home, 'projects', 'openclaw'),
+    join(home, 'code', 'openclaw'),
+    join(home, 'dev', 'openclaw'),
+    join(home, 'src', 'openclaw'),
+    join(home, 'Developer', 'openclaw'),
+  );
+
+  // Platform-specific paths
+  if (CURRENT_PLATFORM === 'darwin') {
+    // macOS
+    paths.push(
+      '/Applications/OpenClaw.app/Contents/Resources/app',
+      join(home, 'Applications', 'OpenClaw.app', 'Contents', 'Resources', 'app'),
+      '/opt/homebrew/lib/node_modules/openclaw',
+      '/usr/local/lib/node_modules/openclaw',
+      '/opt/homebrew/Cellar/openclaw',
+    );
+  } else if (CURRENT_PLATFORM === 'win32') {
+    // Windows
+    const appData = process.env.APPDATA || join(home, 'AppData', 'Roaming');
+    const localAppData = process.env.LOCALAPPDATA || join(home, 'AppData', 'Local');
+    const programFiles = process.env.ProgramFiles || 'C:\\Program Files';
+    const programFilesX86 = process.env['ProgramFiles(x86)'] || 'C:\\Program Files (x86)';
+
+    paths.push(
+      join(programFiles, 'OpenClaw', 'resources', 'app'),
+      join(programFilesX86, 'OpenClaw', 'resources', 'app'),
+      join(localAppData, 'Programs', 'openclaw'),
+      join(appData, 'npm', 'node_modules', 'openclaw'),
+      join(home, 'scoop', 'apps', 'openclaw', 'current'),
+    );
+  } else if (CURRENT_PLATFORM === 'linux') {
+    // Linux
+    paths.push(
+      '/usr/lib/node_modules/openclaw',
+      '/usr/local/lib/node_modules/openclaw',
+      '/opt/openclaw',
+      join(home, '.local', 'lib', 'node_modules', 'openclaw'),
+      join(home, '.local', 'share', 'openclaw'),
+      // AppImage extracted
+      join(home, '.openclaw'),
+      // Snap
+      '/snap/openclaw/current',
+      // Flatpak
+      join(home, '.var', 'app', 'dev.openclaw.OpenClaw', 'data'),
+    );
+  }
+
+  return paths;
 }
 
 /**
@@ -92,6 +165,7 @@ function detectNpmGlobal(): OpenClawInstallation | null {
       patchTarget: useBuilt ? 'built' : 'source',
       targetFile: useBuilt ? builtFile! : sourceFile,
       needsRebuild: !useBuilt,
+      platform: CURRENT_PLATFORM,
     };
   } catch {
     return null;
@@ -161,6 +235,7 @@ function detectNpmLocal(cwd: string = process.cwd()): OpenClawInstallation | nul
     patchTarget,
     targetFile,
     needsRebuild,
+    platform: CURRENT_PLATFORM,
   };
 }
 
@@ -248,10 +323,117 @@ function detectRepoClone(searchPath?: string): OpenClawInstallation | null {
       patchTarget,
       targetFile,
       needsRebuild,
+      platform: CURRENT_PLATFORM,
     };
   }
 
   return null;
+}
+
+/**
+ * Try to find OpenClaw in common installation paths
+ */
+function detectCommonPaths(): OpenClawInstallation | null {
+  const paths = getCommonPaths();
+
+  for (const path of paths) {
+    if (!existsSync(path)) continue;
+
+    // Check for package.json
+    const packageJsonPath = join(path, 'package.json');
+    if (!existsSync(packageJsonPath)) continue;
+
+    try {
+      const packageJson = JSON.parse(readFileSync(packageJsonPath, 'utf-8'));
+
+      // Verify it's OpenClaw
+      if (!packageJson.name?.toLowerCase().includes('openclaw')) continue;
+
+      // Find patchable files
+      const distPath = join(path, 'dist');
+      const gatewayBundle = findGatewayCliBundle(distPath);
+
+      const sourceFile = join(path, 'src/gateway/tools-invoke-http.ts');
+      const builtFile = gatewayBundle || join(path, 'dist/gateway/tools-invoke-http.js');
+
+      // Determine patch strategy
+      let patchTarget: 'source' | 'built' | 'gateway-bundle';
+      let targetFile: string;
+      let needsRebuild: boolean;
+      let type: 'packaged' | 'homebrew' | 'system-package' = 'packaged';
+
+      // Detect installation type from path
+      if (path.includes('homebrew') || path.includes('Cellar')) {
+        type = 'homebrew';
+      } else if (path.includes('/usr/lib') || path.includes('/opt/') || path.includes('snap') || path.includes('flatpak')) {
+        type = 'system-package';
+      }
+
+      if (gatewayBundle && existsSync(gatewayBundle)) {
+        patchTarget = 'gateway-bundle';
+        targetFile = gatewayBundle;
+        needsRebuild = false;
+      } else if (existsSync(builtFile)) {
+        patchTarget = 'built';
+        targetFile = builtFile;
+        needsRebuild = false;
+      } else if (existsSync(sourceFile)) {
+        patchTarget = 'source';
+        targetFile = sourceFile;
+        needsRebuild = true;
+      } else {
+        continue; // No patchable file
+      }
+
+      return {
+        type,
+        rootPath: path,
+        version: packageJson.version || 'unknown',
+        sourceFiles: {
+          beforeToolCall: sourceFile,
+          exists: existsSync(sourceFile),
+        },
+        builtFiles: {
+          beforeToolCall: builtFile,
+          exists: existsSync(builtFile),
+        },
+        gatewayBundle: gatewayBundle || undefined,
+        patchTarget,
+        targetFile,
+        needsRebuild,
+        platform: CURRENT_PLATFORM,
+      };
+    } catch {
+      continue;
+    }
+  }
+
+  return null;
+}
+
+/**
+ * Detect all OpenClaw installations on the system
+ */
+export async function detectAllInstallations(): Promise<OpenClawInstallation[]> {
+  const installations: OpenClawInstallation[] = [];
+
+  // Check repo clone
+  const repoClone = detectRepoClone();
+  if (repoClone) installations.push(repoClone);
+
+  // Check local npm
+  const npmLocal = detectNpmLocal();
+  if (npmLocal) installations.push(npmLocal);
+
+  // Check global npm
+  const npmGlobal = detectNpmGlobal();
+  if (npmGlobal) installations.push(npmGlobal);
+
+  // Check common paths
+  const commonPath = detectCommonPaths();
+  if (commonPath) installations.push(commonPath);
+
+  return installations;
 }
 
 /**
@@ -262,14 +444,27 @@ export async function detectOpenClaw(
 ): Promise<OpenClawInstallation> {
   // Try repo clone first (most common for development)
   let installation = detectRepoClone(searchPath);
-  if (installation) return installation;
+  if (installation) {
+    installation.platform = CURRENT_PLATFORM;
+    return installation;
+  }
 
   // Try local npm install
   installation = detectNpmLocal();
-  if (installation) return installation;
+  if (installation) {
+    installation.platform = CURRENT_PLATFORM;
+    return installation;
+  }
 
   // Try global npm install
   installation = detectNpmGlobal();
+  if (installation) {
+    installation.platform = CURRENT_PLATFORM;
+    return installation;
+  }
+
+  // Try common installation paths
+  installation = detectCommonPaths();
   if (installation) return installation;
 
   // Not found
@@ -288,6 +483,7 @@ export async function detectOpenClaw(
     patchTarget: 'source',
     targetFile: '',
     needsRebuild: true,
+    platform: CURRENT_PLATFORM,
   };
 }
 

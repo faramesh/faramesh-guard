@@ -96,19 +96,19 @@ class GuardIntegration:
 
         try:
             # Import and initialize components
-            from service.policy.rego_engine import get_rego_engine
+            from service.policy.rego_engine import get_opa_engine
             from service.capability.macaroons import get_macaroon_minter, get_macaroon_validator
-            from service.auth.zanzibar import get_zanzibar
-            from service.ml.risk_scorer import get_risk_scorer
+            from service.auth.zanzibar import get_zanzibar_authorizer
+            from service.ml.risk_scorer import get_ml_risk_scorer
             from service.update.tuf_client import get_tuf_client
             from service.transparency.rekor import get_transparency_logger
             from service.learning.behavioral import get_behavioral_learner
 
-            self._rego_engine = get_rego_engine()
+            self._rego_engine = get_opa_engine()
             self._macaroon_minter = get_macaroon_minter()
             self._macaroon_validator = get_macaroon_validator()
-            self._zanzibar = get_zanzibar()
-            self._risk_scorer = get_risk_scorer()
+            self._zanzibar = get_zanzibar_authorizer()
+            self._risk_scorer = get_ml_risk_scorer()
             self._tuf_client = get_tuf_client()
             self._transparency_logger = get_transparency_logger()
             self._behavioral_learner = get_behavioral_learner()

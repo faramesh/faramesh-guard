@@ -122,12 +122,12 @@ export async function uninstall(): Promise<InstallResult> {
   }
 
   // Remove manifest
-  const { unlinkSync } = await import('fs');
+  const { unlinkSync, existsSync: fsExistsSync } = await import('fs');
   const { join } = await import('path');
   const { homedir } = await import('os');
 
   const manifestPath = join(homedir(), '.faramesh-guard', 'patch.json');
-  if (require('fs').existsSync(manifestPath)) {
+  if (fsExistsSync(manifestPath)) {
     unlinkSync(manifestPath);
   }
 
