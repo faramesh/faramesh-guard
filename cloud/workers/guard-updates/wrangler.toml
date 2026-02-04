@@ -1,10 +1,12 @@
 name = "guard-updates"
 main = "src/index.js"
 compatibility_date = "2024-01-01"
+workers_dev = true
 
-# Custom domain - uncomment after DNS is configured
+# Custom domain - requires zone to be active in Cloudflare
+# Uncomment after zone is added:
 # routes = [
-#   { pattern = "updates.faramesh.dev", custom_domain = true }
+#   { pattern = "updates.faramesh.dev/*", zone_name = "faramesh.dev" }
 # ]
 
 # R2 bucket for TUF artifacts
