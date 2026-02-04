@@ -1,0 +1,210 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://faramesh.com/schemas/guard-v1/car-schema.json",
+  "title": "Canonical Action Representation (CAR)",
+  "description": "Rich CAR schema with semantic extraction for Faramesh Guard v1",
+  "type": "object",
+  "properties": {
+    "agent_id": {
+      "type": "string",
+      "description": "Unique identifier for the AI agent"
+    },
+    "session_id": {
+      "type": "string",
+      "description": "Current conversation/session identifier"
+    },
+    "workspace_id": {
+      "type": "string",
+      "description": "Workspace or project context"
+    },
+    "tool": {
+      "type": "string",
+      "enum": ["exec", "fs", "browser", "http", "communication", "api", "other"],
+      "description": "Category of tool being invoked"
+    },
+    "operation": {
+      "type": "string",
+      "enum": ["read", "write", "execute", "send", "fetch", "modify", "delete", "create"],
+      "description": "Type of operation being performed"
+    },
+    "target_kind": {
+      "type": "string",
+      "enum": ["filesystem", "network", "process", "person", "api", "financial", "system"],
+      "description": "Category of the target resource"
+    },
+    "target": {
+      "type": "string",
+      "description": "Primary target (path, URL, email, API endpoint)"
+    },
+    "destination": {
+      "type": "string",
+      "description": "For network/communication: domain, recipient"
+    },
+    "destination_external": {
+      "type": "boolean",
+      "description": "Whether destination is external to organization"
+    },
+    "scope": {
+      "type": "string",
+      "enum": ["single", "recursive", "batch", "system-wide"],
+      "description": "Scope of the operation"
+    },
+    "sensitivity": {
+      "type": "object",
+      "description": "Sensitivity analysis of the action",
+      "properties": {
+        "contains_pii": {
+          "type": "boolean",
+          "description": "Whether action involves PII (personally identifiable information)"
+        },
+        "contains_secrets": {
+          "type": "boolean",
+          "description": "Whether action involves secrets/credentials"
+        },
+        "contains_financial_ref": {
+          "type": "boolean",
+          "description": "Whether action involves financial references"
+        },
+        "money_amount": {
+          "type": "number",
+          "description": "Monetary amount involved (if any)"
+        },
+        "contains_home_dir": {
+          "type": "boolean",
+          "description": "Whether action targets home directory"
+        },
+        "contains_system_path": {
+          "type": "boolean",
+          "description": "Whether action targets system paths"
+        },
+        "confidence": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1,
+          "description": "Confidence in sensitivity analysis"
+        }
+      }
+    },
+    "context": {
+      "type": "object",
+      "description": "Contextual information about the action",
+      "properties": {
+        "intent_detected": {
+          "type": "string",
+          "description": "Detected user/agent intent"
+        },
+        "prior_relationship": {
+          "type": "boolean",
+          "description": "Whether target has prior relationship"
+        },
+        "workspace": {
+          "type": "string",
+          "description": "Current workspace name"
+        },
+        "prior_actions_count": {
+          "type": "integer",
+          "description": "Number of prior actions in session"
+        }
+      }
+    },
+    "risk_tags": {
+      "type": "array",
+      "description": "Risk classification tags",
+      "items": {
+        "type": "string",
+        "enum": [
+          "destructive",
+          "irreversible",
+          "system_path",
+          "external_communication",
+          "financial",
+          "credential_access",
+          "data_exfil",
+          "unknown_recipient",
+          "privilege_escalation",
+          "mass_operation"
+        ]
+      }
+    },
+    "extraction_confidence": {
+      "type": "number",
+      "minimum": 0,
+      "maximum": 1,
+      "description": "Confidence in CAR extraction accuracy"
+    },
+    "car_hash": {
+      "type": "string",
+      "pattern": "^sha256:[a-f0-9]{64}$",
+      "description": "SHA-256 hash of canonical JSON representation - action identity for audit + replay protection"
+    },
+    "technical_risk": {
+      "type": "string",
+      "enum": ["low", "medium", "high", "critical"],
+      "description": "Machine/technical harm potential (system integrity, security)"
+    },
+    "economic_risk": {
+      "type": "string",
+      "enum": ["low", "medium", "high", "critical"],
+      "description": "Financial/business harm potential (money, customer relationships)"
+    },
+    "operational_risk": {
+      "type": "string",
+      "enum": ["low", "medium", "high", "critical"],
+      "description": "Business continuity harm potential (outages, workflow disruption)"
+    },
+    "timestamp": {
+      "type": "string",
+      "format": "date-time",
+      "description": "ISO 8601 UTC timestamp with millisecond precision"
+    }
+  },
+  "required": [
+    "agent_id",
+    "tool",
+    "operation",
+    "target_kind",
+    "target",
+    "timestamp",
+    "extraction_confidence",
+    "car_hash",
+    "technical_risk",
+    "economic_risk",
+    "operational_risk"
+  ],
+  "additionalProperties": false,
+  "examples": [
+    {
+      "agent_id": "claude-3-opus",
+      "session_id": "sess_abc123",
+      "workspace_id": "proj_xyz789",
+      "tool": "exec",
+      "operation": "execute",
+      "target_kind": "filesystem",
+      "target": "rm -rf ./temp",
+      "destination": null,
+      "destination_external": false,
+      "scope": "recursive",
+      "sensitivity": {
+        "contains_pii": false,
+        "contains_secrets": false,
+        "contains_financial_ref": false,
+        "contains_home_dir": false,
+        "contains_system_path": false,
+        "confidence": 0.95
+      },
+      "context": {
+        "intent_detected": "cleanup_temp_files",
+        "prior_relationship": false,
+        "workspace": "my-project",
+        "prior_actions_count": 5
+      },
+      "risk_tags": ["destructive", "irreversible"],
+      "extraction_confidence": 0.95,
+      "car_hash": "sha256:abc123def456...",
+      "technical_risk": "medium",
+      "economic_risk": "low",
+      "operational_risk": "low",
+      "timestamp": "2026-02-03T12:30:45.123Z"
+    }
+  ]
+}

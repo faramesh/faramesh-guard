@@ -1,0 +1,68 @@
+[package]
+name = "faramesh-guard-core"
+version = "0.1.0"
+edition = "2021"
+description = "Security kernel for Faramesh Guard - permit validation, CAR hashing, fast cache"
+license = "MIT"
+authors = ["Faramesh Team"]
+
+[lib]
+name = "guard_core"
+crate-type = ["cdylib", "rlib"]
+
+[[bin]]
+name = "guard-core-ipc"
+path = "src/bin/ipc_server.rs"
+
+[dependencies]
+# Crypto
+ring = "0.17"
+hmac = "0.12"
+sha2 = "0.10"
+base64 = "0.21"
+
+# Serialization
+serde = { version = "1.0", features = ["derive"] }
+serde_json = "1.0"
+
+# Async runtime
+tokio = { version = "1.35", features = ["full", "sync", "time", "net", "io-util", "macros", "rt-multi-thread"] }
+
+# IPC
+interprocess = "2.0"
+
+# Lock-free data structures
+dashmap = "5.5"
+crossbeam = "0.8"
+
+# Time handling
+chrono = { version = "0.4", features = ["serde"] }
+
+# Logging
+tracing = "0.1"
+tracing-subscriber = { version = "0.3", features = ["env-filter"] }
+
+# Python FFI
+pyo3 = { version = "0.20", features = ["extension-module"], optional = true }
+
+# Error handling
+thiserror = "1.0"
+anyhow = "1.0"
+
+[features]
+default = []
+python = ["pyo3"]
+
+[dev-dependencies]
+criterion = "0.5"
+tokio-test = "0.4"
+
+[[bench]]
+name = "hot_path"
+harness = false
+
+[profile.release]
+lto = true
+codegen-units = 1
+opt-level = 3
+strip = true

@@ -1,0 +1,108 @@
+name: "Infrastructure & Operations"
+description: "Safe defaults for cloud infrastructure management"
+mode: "strict"
+version: "1.0"
+
+# Low-risk actions that are automatically allowed
+allow_patterns:
+  - tool: "http"
+    domain: "*.amazonaws.com"
+    operation: "read"
+    method: "GET"
+    risk: "low"
+    reason: "Reading AWS resources"
+
+  - tool: "http"
+    domain: "*.googleapis.com"
+    operation: "read"
+    method: "GET"
+    risk: "low"
+    reason: "Reading GCP resources"
+
+  - tool: "http"
+    domain: "management.azure.com"
+    operation: "read"
+    method: "GET"
+    risk: "low"
+    reason: "Reading Azure resources"
+
+  - tool: "exec"
+    binary: "terraform"
+    operation: "plan|validate|fmt"
+    risk: "low"
+    reason: "Read-only Terraform operations"
+
+  - tool: "exec"
+    binary: "kubectl"
+    operation: "get|describe"
+    risk: "low"
+    reason: "Read-only Kubernetes operations"
+
+  - tool: "exec"
+    binary: "aws"
+    operation: "list|describe|get"
+    risk: "low"
+    reason: "Read-only AWS CLI operations"
+
+# Actions that require human approval
+require_approval:
+  - tool: "exec"
+    binary: "terraform"
+    args_contains: ["apply", "destroy"]
+    risk: "critical"
+    reason: "Terraform mutations require approval"
+
+  - tool: "exec"
+    binary: "kubectl"
+    args_contains: ["apply", "delete", "scale"]
+    risk: "critical"
+    reason: "Kubernetes mutations require approval"
+
+  - tool: "exec"
+    binary: "aws"
+    args_contains: ["create", "delete", "terminate", "modify"]
+    risk: "high"
+    reason: "AWS mutations require approval"
+
+  - tool: "http"
+    domain: "*.amazonaws.com|*.googleapis.com|management.azure.com"
+    method: "POST|PUT|DELETE"
+    environment: "production"
+    risk: "critical"
+    reason: "Production infrastructure changes require approval"
+
+  - tool: "http"
+    domain: "*.amazonaws.com|*.googleapis.com|management.azure.com"
+    method: "POST|PUT|DELETE"
+    environment: "staging|development"
+    risk: "medium"
+    reason: "Non-prod infrastructure changes require approval"
+
+  - tool: "exec"
+    binary: "docker"
+    operation: "push"
+    registry: "production"
+    risk: "high"
+    reason: "Production image pushes require approval"
+
+# Actions that are always blocked
+deny:
+  - tool: "exec"
+    binary: "terraform"
+    args_contains: ["destroy"]
+    target_match: [".*production.*", ".*prod.*"]
+    risk: "critical"
+    reason: "Production infrastructure destruction blocked"
+
+  - tool: "http"
+    domain: "*.amazonaws.com"
+    operation: "terminate_instances"
+    environment: "production"
+    risk: "critical"
+    reason: "Production instance termination blocked"
+
+  - tool: "exec"
+    binary: "kubectl"
+    args_contains: ["delete namespace", "delete pvc"]
+    risk: "critical"
+    reason: "Destructive Kubernetes operations blocked"

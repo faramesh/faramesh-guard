@@ -1,0 +1,16 @@
+{
+  "name": "guard-ingest",
+  "version": "1.0.0",
+  "private": true,
+  "scripts": {
+    "dev": "wrangler dev",
+    "deploy": "wrangler deploy",
+    "db:migrate": "wrangler d1 execute guard-fleet --file=schema.sql",
+    "db:migrate:local": "wrangler d1 execute guard-fleet --file=schema.sql --local"
+  },
+  "devDependencies": {
+    "@cloudflare/workers-types": "^4.20240208.0",
+    "typescript": "^5.3.3",
+    "wrangler": "^3.28.0"
+  }
+}

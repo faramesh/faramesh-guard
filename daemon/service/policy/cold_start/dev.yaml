@@ -1,0 +1,123 @@
+name: "DevOps & Development"
+description: "Sensible defaults for software development workflows"
+mode: "safe"
+version: "1.0"
+
+# Low-risk actions that are automatically allowed
+allow_patterns:
+  - tool: "exec"
+    binary: "git"
+    risk: "low"
+    reason: "Git operations are safe by default"
+
+  - tool: "exec"
+    binary: "npm"
+    operation: "install|run|test"
+    risk: "low"
+    reason: "Package manager operations in dev workflows"
+
+  - tool: "exec"
+    binary: "yarn"
+    operation: "install|run|test"
+    risk: "low"
+    reason: "Yarn package manager operations"
+
+  - tool: "exec"
+    binary: "pnpm"
+    operation: "install|run|test"
+    risk: "low"
+    reason: "PNPM package manager operations"
+
+  - tool: "exec"
+    binary: "poetry"
+    operation: "install|run|shell"
+    risk: "low"
+    reason: "Python Poetry operations"
+
+  - tool: "exec"
+    binary: "pip"
+    operation: "install|list|show"
+    risk: "low"
+    reason: "Python package installs"
+
+  - tool: "exec"
+    binary: "cargo"
+    operation: "build|run|test"
+    risk: "low"
+    reason: "Rust cargo operations"
+
+  - tool: "fs"
+    operation: "read"
+    path: "~/code/**"
+    risk: "low"
+    reason: "Reading from code directory"
+
+  - tool: "fs"
+    operation: "write"
+    path: "~/code/**"
+    exclude_patterns: [".env", "*.key", "*.pem", "*.cert"]
+    risk: "low"
+    reason: "Writing to code directory (except secrets)"
+
+  - tool: "http"
+    domain: "github.com|gitlab.com|bitbucket.org"
+    operation: "read"
+    risk: "low"
+    reason: "Reading from code hosting platforms"
+
+# Actions that require human approval
+require_approval:
+  - tool: "exec"
+    has_sudo: true
+    risk: "high"
+    reason: "Privilege escalation requires approval"
+
+  - tool: "exec"
+    binary: "*"
+    args_contains: ["rm -rf", "--force", "-f"]
+    risk: "high"
+    reason: "Destructive operations require approval"
+
+  - tool: "exec"
+    binary: "docker"
+    operation: "run|exec"
+    risk: "medium"
+    reason: "Docker operations can affect system"
+
+  - tool: "http"
+    destination_external: true
+    has_auth_header: true
+    risk: "medium"
+    reason: "External API calls with auth"
+
+  - tool: "fs"
+    operation: "delete"
+    path: "**"
+    risk: "medium"
+    reason: "File deletions require approval"
+
+  - tool: "exec"
+    binary: "npm"
+    operation: "publish"
+    risk: "high"
+    reason: "Package publishing requires approval"
+
+# Actions that are always blocked
+deny:
+  - tool: "exec"
+    operation: "modify_system"
+    path: "/System/**"
+    risk: "critical"
+    reason: "System directory modification blocked"
+
+  - tool: "exec"
+    binary: "*"
+    args_contains: ["dd if=", "mkfs", "format"]
+    risk: "critical"
+    reason: "Disk operations blocked"
+
+  - tool: "fs"
+    operation: "write"
+    path: "/System/**"
+    risk: "critical"
+    reason: "System file modification blocked"

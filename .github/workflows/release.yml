@@ -1,0 +1,319 @@
+name: Build and Release
+
+on:
+  push:
+    tags:
+      - 'v*'
+  workflow_dispatch:
+    inputs:
+      version:
+        description: 'Version to release (e.g., 1.0.0)'
+        required: true
+
+env:
+  CARGO_TERM_COLOR: always
+
+jobs:
+  build-macos-arm64:
+    runs-on: macos-14
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Setup Rust
+        uses: dtolnay/rust-action@stable
+
+      - name: Install dependencies
+        run: |
+          pip install -r daemon/requirements.txt
+          cd rust-core && cargo build --release
+
+      - name: Build daemon package
+        run: |
+          mkdir -p dist
+          # Create app bundle
+          mkdir -p dist/FarameshGuard.app/Contents/MacOS
+          mkdir -p dist/FarameshGuard.app/Contents/Resources
+
+          # Copy daemon
+          cp -r daemon dist/FarameshGuard.app/Contents/Resources/
+          cp rust-core/target/release/libguard_core.dylib dist/FarameshGuard.app/Contents/Resources/ 2>/dev/null || true
+
+          # Create launcher
+          cat > dist/FarameshGuard.app/Contents/MacOS/FarameshGuard << 'EOF'
+          #!/bin/bash
+          cd "$(dirname "$0")/../Resources/daemon"
+          python3 -m uvicorn main:app --host 127.0.0.1 --port 8765
+          EOF
+          chmod +x dist/FarameshGuard.app/Contents/MacOS/FarameshGuard
+
+          # Create Info.plist
+          cat > dist/FarameshGuard.app/Contents/Info.plist << 'EOF'
+          <?xml version="1.0" encoding="UTF-8"?>
+          <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+          <plist version="1.0">
+          <dict>
+            <key>CFBundleName</key>
+            <string>Faramesh Guard</string>
+            <key>CFBundleIdentifier</key>
+            <string>ai.faramesh.guard</string>
+            <key>CFBundleVersion</key>
+            <string>${{ github.ref_name || inputs.version }}</string>
+            <key>LSMinimumSystemVersion</key>
+            <string>12.0</string>
+          </dict>
+          </plist>
+          EOF
+
+          # Zip
+          cd dist && zip -r guard-macos-arm64.zip FarameshGuard.app
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: guard-macos-arm64
+          path: dist/guard-macos-arm64.zip
+
+  build-macos-x64:
+    runs-on: macos-13
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Setup Rust
+        uses: dtolnay/rust-action@stable
+
+      - name: Install dependencies
+        run: |
+          pip install -r daemon/requirements.txt
+          cd rust-core && cargo build --release
+
+      - name: Build daemon package
+        run: |
+          mkdir -p dist
+          mkdir -p dist/FarameshGuard.app/Contents/MacOS
+          mkdir -p dist/FarameshGuard.app/Contents/Resources
+
+          cp -r daemon dist/FarameshGuard.app/Contents/Resources/
+          cp rust-core/target/release/libguard_core.dylib dist/FarameshGuard.app/Contents/Resources/ 2>/dev/null || true
+
+          cat > dist/FarameshGuard.app/Contents/MacOS/FarameshGuard << 'EOF'
+          #!/bin/bash
+          cd "$(dirname "$0")/../Resources/daemon"
+          python3 -m uvicorn main:app --host 127.0.0.1 --port 8765
+          EOF
+          chmod +x dist/FarameshGuard.app/Contents/MacOS/FarameshGuard
+
+          cat > dist/FarameshGuard.app/Contents/Info.plist << 'EOF'
+          <?xml version="1.0" encoding="UTF-8"?>
+          <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+          <plist version="1.0">
+          <dict>
+            <key>CFBundleName</key>
+            <string>Faramesh Guard</string>
+            <key>CFBundleIdentifier</key>
+            <string>ai.faramesh.guard</string>
+            <key>CFBundleVersion</key>
+            <string>${{ github.ref_name || inputs.version }}</string>
+          </dict>
+          </plist>
+          EOF
+
+          cd dist && zip -r guard-macos-x64.zip FarameshGuard.app
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: guard-macos-x64
+          path: dist/guard-macos-x64.zip
+
+  build-linux-x64:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Setup Rust
+        uses: dtolnay/rust-action@stable
+
+      - name: Install dependencies
+        run: |
+          pip install -r daemon/requirements.txt
+          cd rust-core && cargo build --release
+
+      - name: Build package
+        run: |
+          mkdir -p dist/faramesh-guard
+          cp -r daemon dist/faramesh-guard/
+          cp rust-core/target/release/libguard_core.so dist/faramesh-guard/ 2>/dev/null || true
+
+          # Create launcher script
+          cat > dist/faramesh-guard/guard << 'EOF'
+          #!/bin/bash
+          cd "$(dirname "$0")/daemon"
+          python3 -m uvicorn main:app --host 127.0.0.1 --port 8765
+          EOF
+          chmod +x dist/faramesh-guard/guard
+
+          # Create systemd service file
+          cat > dist/faramesh-guard/faramesh-guard.service << 'EOF'
+          [Unit]
+          Description=Faramesh Guard - AI Agent Security
+          After=network.target
+
+          [Service]
+          Type=simple
+          ExecStart=/opt/faramesh-guard/guard
+          Restart=always
+          User=root
+
+          [Install]
+          WantedBy=multi-user.target
+          EOF
+
+          # Create install script
+          cat > dist/faramesh-guard/install.sh << 'EOF'
+          #!/bin/bash
+          set -e
+          sudo mkdir -p /opt/faramesh-guard
+          sudo cp -r . /opt/faramesh-guard/
+          sudo cp faramesh-guard.service /etc/systemd/system/
+          sudo systemctl daemon-reload
+          sudo systemctl enable faramesh-guard
+          sudo systemctl start faramesh-guard
+          echo "✅ Faramesh Guard installed and running"
+          EOF
+          chmod +x dist/faramesh-guard/install.sh
+
+          cd dist && tar -czvf guard-linux-x64.tar.gz faramesh-guard
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: guard-linux-x64
+          path: dist/guard-linux-x64.tar.gz
+
+  build-windows-x64:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Setup Rust
+        uses: dtolnay/rust-action@stable
+
+      - name: Install dependencies
+        run: |
+          pip install -r daemon/requirements.txt
+          cd rust-core && cargo build --release
+
+      - name: Build package
+        shell: pwsh
+        run: |
+          New-Item -ItemType Directory -Force -Path dist\faramesh-guard
+          Copy-Item -Recurse daemon dist\faramesh-guard\
+          Copy-Item rust-core\target\release\guard_core.dll dist\faramesh-guard\ -ErrorAction SilentlyContinue
+
+          # Create launcher
+          @"
+          @echo off
+          cd /d "%~dp0daemon"
+          python -m uvicorn main:app --host 127.0.0.1 --port 8765
+          "@ | Out-File -FilePath dist\faramesh-guard\guard.bat -Encoding ASCII
+
+          Compress-Archive -Path dist\faramesh-guard -DestinationPath dist\guard-windows-x64.zip
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: guard-windows-x64
+          path: dist/guard-windows-x64.zip
+
+  release:
+    needs: [build-macos-arm64, build-macos-x64, build-linux-x64, build-windows-x64]
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Download all artifacts
+        uses: actions/download-artifact@v4
+        with:
+          path: artifacts
+
+      - name: Generate checksums
+        run: |
+          cd artifacts
+          find . -name "*.zip" -o -name "*.tar.gz" | while read f; do
+            sha256sum "$f" >> checksums.txt
+          done
+          cat checksums.txt
+          mv checksums.txt ../
+
+      - name: Create Release
+        uses: softprops/action-gh-release@v1
+        with:
+          files: |
+            artifacts/guard-macos-arm64/guard-macos-arm64.zip
+            artifacts/guard-macos-x64/guard-macos-x64.zip
+            artifacts/guard-linux-x64/guard-linux-x64.tar.gz
+            artifacts/guard-windows-x64/guard-windows-x64.zip
+            checksums.txt
+          body: |
+            ## Faramesh Guard ${{ github.ref_name }}
+
+            AI Agent Security - Real-time monitoring and control.
+
+            ### Downloads
+            | Platform | File |
+            |----------|------|
+            | macOS (Apple Silicon) | `guard-macos-arm64.zip` |
+            | macOS (Intel) | `guard-macos-x64.zip` |
+            | Linux (x64) | `guard-linux-x64.tar.gz` |
+            | Windows (x64) | `guard-windows-x64.zip` |
+
+            ### Verify Integrity
+            ```bash
+            sha256sum -c checksums.txt
+            ```
+
+            ### Quick Install
+
+            **macOS:**
+            ```bash
+            unzip guard-macos-arm64.zip
+            # Right-click FarameshGuard.app → Open (first time)
+            ```
+
+            **Linux:**
+            ```bash
+            tar -xzf guard-linux-x64.tar.gz
+            cd faramesh-guard && ./install.sh
+            ```
+
+            **Windows:**
+            ```powershell
+            Expand-Archive guard-windows-x64.zip
+            .\faramesh-guard\guard.bat
+            ```
+          draft: false
+          prerelease: false
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

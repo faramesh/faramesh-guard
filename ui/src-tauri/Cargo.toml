@@ -1,0 +1,21 @@
+[package]
+name = "faramesh-guard-ui"
+version = "1.0.0"
+description = "Faramesh Guard Desktop UI"
+authors = ["Faramesh"]
+license = "MIT"
+repository = ""
+edition = "2021"
+rust-version = "1.60"
+
+[build-dependencies]
+tauri-build = { version = "1.5.1", features = [] }
+
+[dependencies]
+serde_json = "1.0"
+serde = { version = "1.0", features = ["derive"] }
+tauri = { version = "1.5.4", features = ["http-all", "notification-all", "shell-open", "system-tray", "window-all"] }
+
+[features]
+default = ["custom-protocol"]
+custom-protocol = ["tauri/custom-protocol"]

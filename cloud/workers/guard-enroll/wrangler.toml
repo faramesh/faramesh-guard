@@ -1,0 +1,11 @@
+name = "guard-enroll"
+main = "src/index.js"
+compatibility_date = "2025-01-01"
+
+[[d1_databases]]
+binding = "guard_fleet"
+database_name = "guard-fleet"
+database_id = "83f366bb-7a76-4c1b-9b18-da873ac8d5d6"
+
+[vars]
+ENVIRONMENT = "production"

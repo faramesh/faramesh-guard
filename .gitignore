@@ -1,0 +1,49 @@
+# Dependencies
+node_modules/
+__pycache__/
+*.pyc
+.venv/
+venv/
+
+# Build artifacts
+dist/
+build/
+target/
+*.egg-info/
+
+# Swift/Xcode
+.build/
+*.xcworkspace/
+*.xcuserdata/
+DerivedData/
+.swiftpm/
+
+# Tauri
+ui/src-tauri/target/
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+.DS_Store
+
+# Environment
+.env
+.env.local
+*.local
+
+# Logs
+*.log
+logs/
+
+# Cloud workers local dev
+.wrangler/
+
+# Test outputs
+coverage/
+.pytest_cache/
+
+# Misc
+*.tmp
+*.bak

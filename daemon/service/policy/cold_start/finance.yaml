@@ -1,0 +1,88 @@
+name: "Finance Operations"
+description: "Safe defaults for financial workflows (Stripe, accounting, refunds)"
+mode: "strict"
+version: "1.0"
+
+# Low-risk actions that are automatically allowed
+allow_patterns:
+  - tool: "http"
+    domain: "stripe.com"
+    operation: "read"
+    method: "GET"
+    risk: "low"
+    reason: "Reading Stripe data"
+
+  - tool: "http"
+    domain: "api.stripe.com"
+    endpoint: "/v1/customers|/v1/products|/v1/prices"
+    method: "GET"
+    risk: "low"
+    reason: "Reading customer/product data"
+
+  - tool: "fs"
+    operation: "read"
+    path: "~/accounting/**"
+    risk: "low"
+    reason: "Reading accounting data"
+
+# Actions that require human approval
+require_approval:
+  - tool: "http"
+    domain: "stripe.com|api.stripe.com"
+    method: "POST|PUT|DELETE"
+    risk: "high"
+    reason: "Stripe mutations require approval"
+
+  - tool: "api"
+    target_kind: "financial"
+    operation: "refund|charge|transfer"
+    money_amount:
+      gt: 50
+    risk: "high"
+    reason: "Transactions >$50 require approval"
+
+  - tool: "api"
+    target_kind: "financial"
+    prior_relationship: false
+    risk: "critical"
+    reason: "Transactions to unknown recipients require approval"
+
+  - tool: "communication"
+    contains_financial_ref: true
+    risk: "high"
+    reason: "Financial communications require review"
+
+  - tool: "http"
+    domain: "plaid.com"
+    method: "POST"
+    risk: "high"
+    reason: "Plaid API mutations require approval"
+
+  - tool: "http"
+    domain: "quickbooks.intuit.com"
+    method: "POST|PUT|DELETE"
+    risk: "high"
+    reason: "QuickBooks mutations require approval"
+
+# Actions that are always blocked
+deny:
+  - tool: "api"
+    target_kind: "financial"
+    money_amount:
+      gt: 10000
+    auto_approval: false
+    risk: "critical"
+    reason: "Transactions >$10k cannot be auto-approved"
+
+  - tool: "http"
+    domain: "*"
+    endpoint: "**/*refund*"
+    money_amount:
+      gt: 5000
+    risk: "critical"
+    reason: "Large refunds blocked"
+
+  - tool: "api"
+    operation: "bulk_refund|bulk_charge"
+    risk: "critical"
+    reason: "Bulk financial operations blocked"

@@ -1,0 +1,81 @@
+name: "Customer Support"
+description: "Safe defaults for support workflows (email, Zendesk, helpdesk)"
+mode: "safe"
+version: "1.0"
+
+# Low-risk actions that are automatically allowed
+allow_patterns:
+  - tool: "communication"
+    destination_scope: "internal"
+    risk: "low"
+    reason: "Internal messages are safe"
+
+  - tool: "http"
+    domain: "zendesk.com|*.zendesk.com"
+    operation: "read"
+    method: "GET"
+    risk: "low"
+    reason: "Reading Zendesk tickets"
+
+  - tool: "http"
+    domain: "intercom.com|api.intercom.io"
+    operation: "read"
+    method: "GET"
+    risk: "low"
+    reason: "Reading Intercom conversations"
+
+  - tool: "http"
+    domain: "freshdesk.com|*.freshdesk.com"
+    operation: "read"
+    method: "GET"
+    risk: "low"
+    reason: "Reading Freshdesk tickets"
+
+  - tool: "communication"
+    destination_external: true
+    contains_pii: false
+    template_based: true
+    risk: "low"
+    reason: "Template-based external messages without PII"
+
+# Actions that require human approval
+require_approval:
+  - tool: "communication"
+    destination_external: true
+    contains_pii: true
+    risk: "medium"
+    reason: "External messages with PII require review"
+
+  - tool: "api"
+    operation: "refund|cancel|delete"
+    risk: "high"
+    reason: "Refunds and cancellations require approval"
+
+  - tool: "http"
+    domain: "zendesk.com|intercom.com|freshdesk.com"
+    method: "POST|PUT|DELETE"
+    risk: "medium"
+    reason: "Ticket/conversation mutations require approval"
+
+  - tool: "communication"
+    destination_external: true
+    attachment_present: true
+    risk: "medium"
+    reason: "External messages with attachments require review"
+
+  - tool: "api"
+    operation: "account_deletion|data_export"
+    risk: "high"
+    reason: "Account operations require approval"
+
+# Actions that are always blocked
+deny:
+  - tool: "communication"
+    contains_credential: true
+    risk: "critical"
+    reason: "Messages with credentials blocked"
+
+  - tool: "api"
+    operation: "bulk_refund|bulk_delete"
+    risk: "critical"
+    reason: "Bulk operations blocked"

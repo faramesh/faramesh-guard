@@ -1,0 +1,40 @@
+{
+  "name": "@faramesh/guard-openclaw",
+  "version": "1.0.0",
+  "description": "OpenClaw integration for Faramesh Guard - non-bypassable agent safety",
+  "type": "module",
+  "main": "dist/index.js",
+  "bin": {
+    "faramesh-guard": "./dist/cli.js"
+  },
+  "scripts": {
+    "build": "tsc",
+    "dev": "tsc --watch",
+    "install-guard": "node dist/cli.js install",
+    "uninstall-guard": "node dist/cli.js uninstall",
+    "status": "node dist/cli.js status",
+    "test": "node tests/bypass_suite.js"
+  },
+  "keywords": [
+    "faramesh",
+    "guard",
+    "openclaw",
+    "ai-safety",
+    "agent-security"
+  ],
+  "author": "Faramesh AI",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/faramesh/faramesh-guard.git",
+    "directory": "integrations/openclaw"
+  },
+  "dependencies": {
+    "chalk": "^5.6.2",
+    "commander": "^11.1.0"
+  },
+  "devDependencies": {
+    "@types/node": "^20.19.31",
+    "typescript": "^5.9.3"
+  }
+}
