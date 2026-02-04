@@ -2,7 +2,7 @@
 
 ## Unsigned Software
 
-Faramesh Guard is currently **unsigned** software. We cannot afford code signing certificates ($400+/year for EV certs).
+Faramesh Guard is currently **unsigned** software.
 
 This means:
 - **macOS**: Gatekeeper will block it. Right-click → Open to bypass.
